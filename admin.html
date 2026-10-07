@@ -2,31 +2,34 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>부울경 성경세미나 신앙상담 접수 현황 (관리자)</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-navy: #0b1a3d;
+            --secondary-navy: #152750;
             --accent-gold: #c59b27;
+            --gold-light: #dfb64c;
             --bg-gray: #f4f6fa;
             --card-bg: #ffffff;
             --border-color: #e2e8f0;
-            --text-main: #222222;
-            --text-muted: #666666;
+            --text-main: #1a202c;
+            --text-muted: #64748b;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: 'Noto Sans KR', sans-serif;
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-gray);
             color: var(--text-main);
-            padding-bottom: 50px;
+            padding-bottom: 60px;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -34,7 +37,7 @@
         .admin-header {
             background-color: var(--primary-navy);
             color: #ffffff;
-            padding: 16px 20px;
+            padding: 14px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -42,61 +45,62 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
 
         .header-title h1 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
+            letter-spacing: -0.3px;
         }
 
         .header-title p {
-            font-size: 0.75rem;
-            color: var(--accent-gold);
+            font-size: 0.72rem;
+            color: var(--gold-light);
+            margin-top: 1px;
         }
 
         .refresh-btn {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.15);
             border: 1px solid var(--accent-gold);
             color: #ffffff;
-            padding: 7px 14px;
+            padding: 7px 12px;
             border-radius: 6px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         /* Container */
         .container {
-            max-width: 680px;
+            max-width: 600px;
             margin: 0 auto;
-            padding: 16px;
+            padding: 12px;
         }
 
         /* Stats Bar */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: 6px;
+            margin-bottom: 12px;
         }
 
         .stat-card {
             background: #ffffff;
-            padding: 12px 8px;
-            border-radius: 10px;
+            padding: 10px 4px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
             text-align: center;
         }
 
-        .stat-card.active {
-            border-color: var(--primary-navy);
-            background: #ebf1fa;
-        }
-
         .stat-label {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: var(--text-muted);
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         .stat-value {
@@ -108,19 +112,20 @@
         /* Search & Filter */
         .filter-box {
             background: #ffffff;
-            padding: 14px;
+            padding: 12px;
             border-radius: 10px;
             border: 1px solid var(--border-color);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .search-input {
             width: 100%;
-            padding: 10px 14px;
-            border: 1px solid #dcdcdc;
+            padding: 10px 12px;
+            border: 1.5px solid #d9e0e8;
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             outline: none;
+            font-family: inherit;
         }
 
         .search-input:focus {
@@ -132,17 +137,21 @@
             gap: 6px;
             margin-top: 10px;
             overflow-x: auto;
-            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+
+        .day-tabs::-webkit-scrollbar {
+            display: none;
         }
 
         .day-tab {
-            padding: 6px 14px;
-            background: #f0f2f5;
-            border: 1px solid #e2e8f0;
+            padding: 6px 12px;
+            background: #f1f4f9;
+            border: 1px solid #d9e2ec;
             border-radius: 20px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            color: #555555;
+            color: #486581;
             cursor: pointer;
             white-space: nowrap;
         }
@@ -153,29 +162,40 @@
             border-color: var(--primary-navy);
         }
 
-        /* List Cards */
+        /* Applicant Card (Mobile-First) */
         .applicant-card {
             background: #ffffff;
             border-radius: 12px;
             border: 1px solid var(--border-color);
-            padding: 18px;
-            margin-bottom: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
         }
 
-        .card-top {
+        .card-header-row {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             margin-bottom: 12px;
-            border-bottom: 1px dashed #edf0f5;
             padding-bottom: 10px;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        .target-name-area {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
         }
 
         .target-name {
-            font-size: 1.22rem;
+            font-size: 1.25rem;
             font-weight: 700;
             color: var(--primary-navy);
+        }
+
+        .target-honorific {
+            font-size: 0.85rem;
+            color: var(--text-muted);
         }
 
         .schedule-badge {
@@ -183,55 +203,64 @@
             color: #8c6a0c;
             border: 1px solid #eddcb0;
             padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.82rem;
+            border-radius: 16px;
+            font-size: 0.8rem;
             font-weight: 700;
-            text-align: right;
+            white-space: nowrap;
         }
 
-        .person-section {
-            background: #f9fbfd;
-            border: 1px solid #eef2f7;
+        /* Section Boxes */
+        .info-section {
+            background: #f8fafc;
+            border: 1px solid #eef2f6;
             border-radius: 8px;
             padding: 10px 12px;
             margin-bottom: 8px;
         }
 
-        .person-header {
+        .info-section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 6px;
         }
 
-        .person-role {
-            font-size: 0.8rem;
+        .section-label {
+            font-size: 0.78rem;
             font-weight: 700;
             color: var(--text-muted);
         }
 
-        .person-name {
+        .section-person {
+            font-size: 0.95rem;
             font-weight: 600;
-            color: #222;
+            color: #1e293b;
         }
 
-        .action-buttons {
+        .action-btn-group {
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
+            margin-top: 6px;
         }
 
         .btn-action {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 4px;
             text-decoration: none;
-            padding: 5px 10px;
+            padding: 6px 11px;
             border-radius: 6px;
             font-size: 0.78rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
+            transition: transform 0.1s;
+        }
+
+        .btn-action:active {
+            transform: scale(0.96);
         }
 
         .btn-call {
@@ -248,29 +277,25 @@
 
         .btn-copy {
             background: #fff8e1;
-            color: #f57f17;
-            border: 1px solid #ffe082;
-        }
-
-        .btn-action:active {
-            transform: scale(0.96);
+            color: #b7791f;
+            border: 1px solid #fef3c7;
         }
 
         .note-box {
             background: #fffdf8;
-            border: 1px solid #f2e9d2;
+            border: 1px solid #fcefc7;
             border-radius: 8px;
             padding: 10px 12px;
-            margin-top: 10px;
+            margin-top: 8px;
             font-size: 0.85rem;
-            color: #555;
+            color: #475569;
             line-height: 1.45;
         }
 
-        .card-footer {
+        .card-footer-time {
             margin-top: 10px;
-            font-size: 0.75rem;
-            color: #999999;
+            font-size: 0.74rem;
+            color: #94a3b8;
             text-align: right;
         }
 
@@ -278,7 +303,8 @@
             text-align: center;
             padding: 50px 20px;
             color: #888888;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
+            line-height: 1.6;
         }
 
         /* Password Modal */
@@ -288,7 +314,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(11, 26, 61, 0.85);
+            background: rgba(11, 26, 61, 0.88);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -299,30 +325,30 @@
         .auth-card {
             background: #ffffff;
             width: 100%;
-            max-width: 360px;
-            padding: 30px 24px;
+            max-width: 340px;
+            padding: 28px 22px;
             border-radius: 14px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
         }
 
         .auth-card h2 {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             color: var(--primary-navy);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .auth-card p {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: var(--text-muted);
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .auth-input {
             width: 100%;
             padding: 12px;
             font-size: 1.1rem;
-            border: 1.5px solid #ddd;
+            border: 1.5px solid #cbd5e1;
             border-radius: 8px;
             text-align: center;
             letter-spacing: 4px;
@@ -331,12 +357,12 @@
 
         .auth-btn {
             width: 100%;
-            padding: 14px;
+            padding: 13px;
             background: var(--primary-navy);
             color: #ffffff;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.98rem;
             font-weight: 700;
             cursor: pointer;
         }
@@ -360,7 +386,7 @@
             <h1>신앙상담 접수 현황</h1>
             <p>기쁜소식부산대연교회</p>
         </div>
-        <button class="refresh-btn" onclick="fetchData()">새로고침</button>
+        <button class="refresh-btn" onclick="fetchData()">🔄 새로고침</button>
     </header>
 
     <div class="container">
@@ -386,7 +412,7 @@
 
         <!-- 필터 및 검색 -->
         <div class="filter-box">
-            <input type="text" id="searchInput" class="search-input" placeholder="이름 또는 연락처로 검색..." oninput="filterData()">
+            <input type="text" id="searchInput" class="search-input" placeholder="이름 또는 전화번호 뒷자리 검색..." oninput="filterData()">
             <div class="day-tabs">
                 <button class="day-tab active" onclick="setDayFilter('all', this)">전체보기</button>
                 <button class="day-tab" onclick="setDayFilter('10.14', this)">10.14(수)</button>
@@ -405,7 +431,7 @@
         // Google Apps Script Web App URL
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyK2LTNVBcG6r-HWtGDNRtdXXiTbIWzoXmTBt9ibmRO37AtsFyZ0GAfyOtia5I5IiI/exec";
         
-        // 관리자 비밀번호 (기본: 1234)
+        // 관리자 비밀번호
         const ADMIN_PASSWORD = "1234";
 
         let allApplicants = [];
@@ -426,32 +452,69 @@
             if (e.key === 'Enter') checkAuth();
         });
 
+        // 전화번호 포맷터 (누락된 앞 0 복구 및 하이픈 추가)
+        function formatPhone(p) {
+            if (!p) return "";
+            let num = String(p).replace(/[^0-9]/g, '');
+            if (num.startsWith('10') && num.length === 10) {
+                num = '0' + num;
+            }
+            if (num.length === 11) {
+                return num.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+            } else if (num.length === 10) {
+                return num.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+            }
+            return p;
+        }
+
+        // 접수일시 깔끔하게 포맷팅
+        function formatCleanDate(raw) {
+            if (!raw) return "";
+            try {
+                const d = new Date(raw);
+                if (!isNaN(d.getTime())) {
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const h = String(d.getHours()).padStart(2, '0');
+                    const min = String(d.getMinutes()).padStart(2, '0');
+                    return `${m}.${day} ${h}:${min}`;
+                }
+            } catch (e) {}
+            return String(raw).substring(0, 16);
+        }
+
         async function fetchData() {
             const listEl = document.getElementById('applicantList');
             listEl.innerHTML = '<div class="empty-state">최신 명단을 불러오는 중...</div>';
 
             try {
                 const response = await fetch(SCRIPT_URL);
-                const result = await response.json();
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    throw new Error("데이터 수신 오류: 구글 시트 Apps Script에서 최신 코드를 [새 버전]으로 배포해 주세요.");
+                }
 
                 if (result.result === 'success') {
-                    allApplicants = result.data;
+                    allApplicants = result.data || [];
                     updateStats();
                     filterData();
                 } else {
-                    listEl.innerHTML = '<div class="empty-state">데이터를 가져오지 못했습니다.<br>' + result.message + '</div>';
+                    listEl.innerHTML = '<div class="empty-state">데이터를 가져오지 못했습니다.<br>' + (result.message || "") + '</div>';
                 }
             } catch (err) {
                 console.error(err);
-                listEl.innerHTML = '<div class="empty-state">네트워크 연결에 실패했습니다. 다시 시도해 주세요.</div>';
+                listEl.innerHTML = '<div class="empty-state" style="color:#c62828;">' + err.message + '</div>';
             }
         }
 
         function updateStats() {
             document.getElementById('statTotal').textContent = allApplicants.length;
-            document.getElementById('statWed').textContent = allApplicants.filter(a => a.day.includes('10.14')).length;
-            document.getElementById('statThu').textContent = allApplicants.filter(a => a.day.includes('10.15')).length;
-            document.getElementById('statFri').textContent = allApplicants.filter(a => a.day.includes('10.16')).length;
+            document.getElementById('statWed').textContent = allApplicants.filter(a => String(a.day).includes('10.14')).length;
+            document.getElementById('statThu').textContent = allApplicants.filter(a => String(a.day).includes('10.15')).length;
+            document.getElementById('statFri').textContent = allApplicants.filter(a => String(a.day).includes('10.16')).length;
         }
 
         function setDayFilter(day, el) {
@@ -461,14 +524,14 @@
             filterData();
         }
 
-        // 안내 문자 템플릿 생성기
+        // 안내 문자 템플릿
         function makeSmsMessage(name, day, time) {
-            return `안녕하세요 ${name}님,\n기쁜소식부산대연교회 부울경 성경세미나 신앙상담 신청 안내드립니다.\n\n- 희망일시: ${day} ${time}\n- 장소: 기쁜소식부산대연교회\n\n세미나 장소에서 뵙겠습니다. 감사합니다.`;
+            return `안녕하세요 ${name}님,\n기쁜소식부산대연교회 부울경 성경세미나 신앙상담 안내드립니다.\n\n- 희망일시: ${day} ${time}\n- 장소: 기쁜소식부산대연교회\n\n세미나 장소에서 뵙겠습니다. 감사합니다.`;
         }
 
-        // 스마트폰 기본 문자 앱 자동 실행
+        // 문자 앱 열기
         function sendSms(phone, name, day, time) {
-            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            const cleanPhone = String(phone).replace(/[^0-9]/g, '');
             if (!cleanPhone) {
                 alert("연락처가 등록되어 있지 않습니다.");
                 return;
@@ -479,7 +542,7 @@
             window.location.href = `sms:${cleanPhone}${separator}body=${encodeURIComponent(body)}`;
         }
 
-        // 카카오톡/문자용 문구 복사
+        // 카카오톡용 문구 복사
         function copySms(name, day, time) {
             const msg = makeSmsMessage(name, day, time);
             navigator.clipboard.writeText(msg).then(() => {
@@ -494,12 +557,19 @@
             const listEl = document.getElementById('applicantList');
 
             const filtered = allApplicants.filter(item => {
-                const matchDay = currentDayFilter === 'all' || item.day.includes(currentDayFilter);
+                const dayStr = String(item.day || "");
+                const matchDay = currentDayFilter === 'all' || dayStr.includes(currentDayFilter);
+                
+                const inviteeStr = String(item.invitee || "").toLowerCase();
+                const inviterStr = String(item.inviter || "").toLowerCase();
+                const inviteePhoneStr = String(item.inviteePhone || "");
+                const inviterPhoneStr = String(item.inviterPhone || "");
+
                 const matchQuery = !query || 
-                    item.invitee.toLowerCase().includes(query) ||
-                    item.inviter.toLowerCase().includes(query) ||
-                    item.inviteePhone.includes(query) ||
-                    item.inviterPhone.includes(query);
+                    inviteeStr.includes(query) ||
+                    inviterStr.includes(query) ||
+                    inviteePhoneStr.includes(query) ||
+                    inviterPhoneStr.includes(query);
                 return matchDay && matchQuery;
             });
 
@@ -509,21 +579,23 @@
             }
 
             listEl.innerHTML = filtered.map(item => {
-                const cleanInviteePhone = item.inviteePhone.replace(/[^0-9]/g, '');
-                const cleanInviterPhone = item.inviterPhone.replace(/[^0-9]/g, '');
+                const inviteePhoneFormatted = formatPhone(item.inviteePhone);
+                const inviterPhoneFormatted = formatPhone(item.inviterPhone);
+                const rawInviteePhone = String(item.inviteePhone || "").replace(/[^0-9]/g, '');
+                const rawInviterPhone = String(item.inviterPhone || "").replace(/[^0-9]/g, '');
 
-                const inviteeActions = cleanInviteePhone ? `
-                    <div class="action-buttons">
-                        <a href="tel:${cleanInviteePhone}" class="btn-action btn-call">📞 통화</a>
-                        <button class="btn-action btn-sms" onclick="sendSms('${cleanInviteePhone}', '${item.invitee}', '${item.day}', '${item.time}')">💬 문자</button>
+                const inviteeActions = inviteePhoneFormatted ? `
+                    <div class="action-btn-group">
+                        <a href="tel:${rawInviteePhone}" class="btn-action btn-call">📞 통화</a>
+                        <button class="btn-action btn-sms" onclick="sendSms('${rawInviteePhone}', '${item.invitee}', '${item.day}', '${item.time}')">💬 문자</button>
                         <button class="btn-action btn-copy" onclick="copySms('${item.invitee}', '${item.day}', '${item.time}')">📋 카톡용 복사</button>
                     </div>
                 ` : '<span style="color:#aaa; font-size:0.8rem;">연락처 없음</span>';
 
-                const inviterActions = cleanInviterPhone ? `
-                    <div class="action-buttons">
-                        <a href="tel:${cleanInviterPhone}" class="btn-action btn-call">📞 통화</a>
-                        <button class="btn-action btn-sms" onclick="sendSms('${cleanInviterPhone}', '${item.inviter}', '${item.day}', '${item.time}')">💬 문자</button>
+                const inviterActions = inviterPhoneFormatted ? `
+                    <div class="action-btn-group">
+                        <a href="tel:${rawInviterPhone}" class="btn-action btn-call">📞 통화</a>
+                        <button class="btn-action btn-sms" onclick="sendSms('${rawInviterPhone}', '${item.inviter}', '${item.day}', '${item.time}')">💬 문자</button>
                     </div>
                 ` : '';
 
@@ -531,10 +603,10 @@
 
                 return `
                     <div class="applicant-card">
-                        <div class="card-top">
-                            <div>
+                        <div class="card-header-row">
+                            <div class="target-name-area">
                                 <span class="target-name">${item.invitee}</span>
-                                <span style="font-size:0.85rem; color:#777; margin-left:4px;">님</span>
+                                <span class="target-honorific">님</span>
                             </div>
                             <div class="schedule-badge">
                                 ${item.day} ${item.time}
@@ -542,25 +614,25 @@
                         </div>
 
                         <!-- 대상자 섹션 -->
-                        <div class="person-section">
-                            <div class="person-header">
-                                <span class="person-role">초청받으신 분</span>
-                                <span class="person-name">${item.invitee} (${item.inviteePhone || '번호없음'})</span>
+                        <div class="info-section">
+                            <div class="info-section-header">
+                                <span class="section-label">초청받으신 분</span>
+                                <span class="section-person">${item.invitee} (${inviteePhoneFormatted || '번호없음'})</span>
                             </div>
                             ${inviteeActions}
                         </div>
 
                         <!-- 초청자 섹션 -->
-                        <div class="person-section">
-                            <div class="person-header">
-                                <span class="person-role">초청자</span>
-                                <span class="person-name">${item.inviter} ${item.inviterPhone ? `(${item.inviterPhone})` : ''}</span>
+                        <div class="info-section">
+                            <div class="info-section-header">
+                                <span class="section-label">초청자</span>
+                                <span class="section-person">${item.inviter} ${inviterPhoneFormatted ? `(${inviterPhoneFormatted})` : ''}</span>
                             </div>
                             ${inviterActions}
                         </div>
 
                         ${noteHtml}
-                        <div class="card-footer">접수: ${item.timestamp}</div>
+                        <div class="card-footer-time">접수: ${formatCleanDate(item.timestamp)}</div>
                     </div>
                 `;
             }).join('');

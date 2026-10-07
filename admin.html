@@ -37,7 +37,7 @@
         .admin-header {
             background-color: var(--primary-navy);
             color: #ffffff;
-            padding: 14px 16px;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -64,43 +64,45 @@
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid var(--accent-gold);
             color: #ffffff;
-            padding: 7px 12px;
+            padding: 6px 11px;
             border-radius: 6px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 4px;
+            white-space: nowrap;
         }
 
         /* Container */
         .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 12px;
+            padding: 10px 8px;
         }
 
         /* Stats Bar */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            margin-bottom: 12px;
+            gap: 5px;
+            margin-bottom: 10px;
         }
 
         .stat-card {
             background: #ffffff;
-            padding: 10px 4px;
+            padding: 9px 2px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
             text-align: center;
         }
 
         .stat-label {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             color: var(--text-muted);
             margin-bottom: 2px;
+            white-space: nowrap;
         }
 
         .stat-value {
@@ -112,18 +114,18 @@
         /* Search & Filter */
         .filter-box {
             background: #ffffff;
-            padding: 12px;
+            padding: 10px;
             border-radius: 10px;
             border: 1px solid var(--border-color);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .search-input {
             width: 100%;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border: 1.5px solid #d9e0e8;
             border-radius: 8px;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             outline: none;
             font-family: inherit;
         }
@@ -134,8 +136,8 @@
 
         .day-tabs {
             display: flex;
-            gap: 6px;
-            margin-top: 10px;
+            gap: 5px;
+            margin-top: 8px;
             overflow-x: auto;
             scrollbar-width: none;
         }
@@ -145,11 +147,11 @@
         }
 
         .day-tab {
-            padding: 6px 12px;
+            padding: 5px 11px;
             background: #f1f4f9;
             border: 1px solid #d9e2ec;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 600;
             color: #486581;
             cursor: pointer;
@@ -162,12 +164,12 @@
             border-color: var(--primary-navy);
         }
 
-        /* Applicant Card (Mobile-First) */
+        /* Applicant Card (Mobile-Optimized to look exactly like Image 2) */
         .applicant-card {
             background: #ffffff;
             border-radius: 12px;
             border: 1px solid var(--border-color);
-            padding: 16px;
+            padding: 14px 12px;
             margin-bottom: 12px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.03);
         }
@@ -176,8 +178,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 6px 8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
             border-bottom: 1px dashed #e2e8f0;
         }
 
@@ -185,34 +189,41 @@
             display: flex;
             align-items: baseline;
             gap: 4px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .target-name {
-            font-size: 1.25rem;
+            font-size: 1.22rem;
             font-weight: 700;
             color: var(--primary-navy);
+            white-space: nowrap;
+            letter-spacing: -0.3px;
         }
 
         .target-honorific {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: var(--text-muted);
+            white-space: nowrap;
         }
 
         .schedule-badge {
             background: #fbf5e6;
             color: #8c6a0c;
             border: 1px solid #eddcb0;
-            padding: 4px 10px;
-            border-radius: 16px;
-            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 14px;
+            font-size: 0.76rem;
             font-weight: 700;
             white-space: nowrap;
+            letter-spacing: -0.3px;
+            margin-left: auto;
         }
 
         /* Section Boxes */
         .info-section {
             border-radius: 8px;
-            padding: 11px 12px;
+            padding: 10px 11px;
             margin-bottom: 8px;
         }
 
@@ -230,6 +241,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 4px 8px;
             margin-bottom: 6px;
         }
 
@@ -240,6 +253,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            white-space: nowrap;
         }
 
         .invitee-section .section-label {
@@ -247,16 +261,19 @@
         }
 
         .section-person {
-            font-size: 0.96rem;
+            font-size: 0.92rem;
             font-weight: 700;
             color: #1e293b;
+            white-space: nowrap;
+            letter-spacing: -0.2px;
         }
 
+        /* 3 Buttons Grid (Calls, SMS, Copy Kakao) */
         .action-btn-group {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: 1fr 1fr 1.25fr;
             gap: 6px;
-            margin-top: 8px;
+            margin-top: 6px;
         }
 
         .btn-action {
@@ -265,12 +282,14 @@
             justify-content: center;
             gap: 4px;
             text-decoration: none;
-            padding: 9px 8px;
+            padding: 8px 4px;
             border-radius: 6px;
             font-size: 0.82rem;
             font-weight: 700;
             cursor: pointer;
             border: none;
+            white-space: nowrap;
+            letter-spacing: -0.5px;
             transition: transform 0.1s;
         }
 
@@ -297,18 +316,20 @@
             background: #fffdf8;
             border: 1px solid #fcefc7;
             border-radius: 8px;
-            padding: 10px 12px;
+            padding: 9px 11px;
             margin-top: 8px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: #475569;
             line-height: 1.45;
+            word-break: break-all;
         }
 
         .card-footer-time {
-            margin-top: 10px;
-            font-size: 0.74rem;
+            margin-top: 8px;
+            font-size: 0.72rem;
             color: #94a3b8;
             text-align: right;
+            white-space: nowrap;
         }
 
         .empty-state {
@@ -464,7 +485,7 @@
             if (e.key === 'Enter') checkAuth();
         });
 
-        // 전화번호 포맷터
+        // 전화번호 포맷터 (010-XXXX-XXXX)
         function formatPhone(p) {
             if (!p) return "";
             let num = String(p).trim().replace(/[^0-9]/g, '');
@@ -492,7 +513,7 @@
             return s.replace(/[^0-9]/g, '');
         }
 
-        // 접수일시 포맷팅
+        // 접수일시 포맷팅 (10.07 13:29 형식으로 단정하게)
         function formatCleanDate(raw) {
             if (!raw) return "";
             try {
@@ -642,7 +663,7 @@
                 const inviterPhoneFormatted = formatPhone(inviterPhoneClean);
                 const inviteePhoneFormatted = formatPhone(inviteePhoneClean);
 
-                // 초청자 액션 버튼 3개 (통화, 문자, 카톡용 복사)
+                // 초청자 액션 버튼 3개 (통화, 문자, 카톡용 복사) - 연락처 저장 버튼은 삭제됨
                 const inviterActions = inviterPhoneClean ? `
                     <div class="action-btn-group">
                         <a href="tel:${inviterPhoneClean}" class="btn-action btn-call">📞 통화</a>
@@ -651,14 +672,13 @@
                     </div>
                 ` : `
                     <div class="action-btn-group">
-                        <button class="btn-action btn-copy" onclick="copyKakaoMessage()">📋 카톡용 복사</button>
-                        <span style="color:#94a3b8; font-size:0.8rem; align-self:center; grid-column: span 2;">초청자 번호 없음</span>
+                        <button class="btn-action btn-copy" onclick="copyKakaoMessage()" style="grid-column: span 3;">📋 카톡용 복사</button>
                     </div>
                 `;
 
                 // 초청받으신 분 액션
                 const inviteeActions = inviteePhoneClean ? `
-                    <a href="tel:${inviteePhoneClean}" style="display:inline-flex; align-items:center; gap:3px; background:#e2e8f0; color:#334155; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:0.82rem; font-weight:600;">
+                    <a href="tel:${inviteePhoneClean}" style="display:inline-flex; align-items:center; gap:3px; background:#e2e8f0; color:#334155; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:0.82rem; font-weight:600; white-space:nowrap;">
                         📞 ${inviteePhoneFormatted}
                     </a>
                 ` : '<span style="color:#94a3b8; font-size:0.8rem;">연락처 없음</span>';

@@ -254,7 +254,7 @@
 
         .action-btn-group {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 6px;
             margin-top: 8px;
         }
@@ -265,7 +265,7 @@
             justify-content: center;
             gap: 4px;
             text-decoration: none;
-            padding: 8px 10px;
+            padding: 9px 8px;
             border-radius: 6px;
             font-size: 0.82rem;
             font-weight: 700;
@@ -285,11 +285,6 @@
 
         .btn-sms {
             background: #0284c7;
-            color: #ffffff;
-        }
-
-        .btn-save-contact {
-            background: #059669;
             color: #ffffff;
         }
 
@@ -614,31 +609,6 @@
             });
         }
 
-        // 초청자 연락처 저장 및 카카오톡 친구추가 안내 (다운로드 에러 없이 다이얼/주소록 즉시 연결)
-        function handleSaveContact(name, phone) {
-            const cleanPhone = extractSinglePhone(phone);
-            if (!cleanPhone) {
-                alert("초청자 연락처가 없습니다.");
-                return;
-            }
-            const formatted = formatPhone(cleanPhone);
-            
-            // 1. 클립보드에 초청자 번호 복사
-            navigator.clipboard.writeText(cleanPhone).then(() => {
-                const choice = confirm(
-                    `[초청자] ${name}님의 전화번호(${formatted})가 복사되었습니다!\n\n` +
-                    `1. 휴대폰 전화 앱에서 [+ 새 연락처 등록]을 누르시면 주소록에 바로 저장됩니다.\n` +
-                    `2. 카카오톡 [친구 추가 > 연락처로 추가]에 바로 붙여넣으셔도 됩니다.\n\n` +
-                    `지금 전화 화면으로 이동하여 연락처에 저장하시겠습니까?`
-                );
-                if (choice) {
-                    window.location.href = `tel:${cleanPhone}`;
-                }
-            }).catch(() => {
-                window.location.href = `tel:${cleanPhone}`;
-            });
-        }
-
         function filterData() {
             const query = document.getElementById('searchInput').value.trim().toLowerCase();
             const listEl = document.getElementById('applicantList');
@@ -672,18 +642,17 @@
                 const inviterPhoneFormatted = formatPhone(inviterPhoneClean);
                 const inviteePhoneFormatted = formatPhone(inviteePhoneClean);
 
-                // 초청자 액션 버튼 4개 (통화, 문자, 연락처 저장, 카톡 복사)
+                // 초청자 액션 버튼 3개 (통화, 문자, 카톡용 복사)
                 const inviterActions = inviterPhoneClean ? `
                     <div class="action-btn-group">
                         <a href="tel:${inviterPhoneClean}" class="btn-action btn-call">📞 통화</a>
                         <button class="btn-action btn-sms" onclick="sendSmsToInviter('${inviterPhoneClean}')">💬 문자</button>
-                        <button class="btn-action btn-save-contact" onclick="handleSaveContact('${item.inviter}', '${inviterPhoneClean}')">👤 연락처 저장</button>
                         <button class="btn-action btn-copy" onclick="copyKakaoMessage()">📋 카톡용 복사</button>
                     </div>
                 ` : `
                     <div class="action-btn-group">
                         <button class="btn-action btn-copy" onclick="copyKakaoMessage()">📋 카톡용 복사</button>
-                        <span style="color:#94a3b8; font-size:0.8rem; align-self:center;">초청자 번호 없음</span>
+                        <span style="color:#94a3b8; font-size:0.8rem; align-self:center; grid-column: span 2;">초청자 번호 없음</span>
                     </div>
                 `;
 

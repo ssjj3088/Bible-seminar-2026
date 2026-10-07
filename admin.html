@@ -614,38 +614,29 @@
             });
         }
 
-        // 초청자 연락처 휴대폰 주소록에 바로 저장 (vCard 자동 다운로드/실행)
-        function saveContact(name, phone) {
+        // 초청자 연락처 저장 및 카카오톡 친구추가 안내 (다운로드 에러 없이 다이얼/주소록 즉시 연결)
+        function handleSaveContact(name, phone) {
             const cleanPhone = extractSinglePhone(phone);
             if (!cleanPhone) {
                 alert("초청자 연락처가 없습니다.");
                 return;
             }
             const formatted = formatPhone(cleanPhone);
-            const vcard = [
-                "BEGIN:VCARD",
-                "VERSION:3.0",
-                `FN:[초청자] ${name}`,
-                `N:${name};[초청자];;;`,
-                `TEL;TYPE=CELL:${formatted}`,
-                "NOTE:부울경 성경세미나 초청자",
-                "END:VCARD"
-            ].join("\r\n");
-
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            if (isIOS) {
-                window.location.href = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcard);
-            } else {
-                const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `[초청자]_${name}.vcf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
+            
+            // 1. 클립보드에 초청자 번호 복사
+            navigator.clipboard.writeText(cleanPhone).then(() => {
+                const choice = confirm(
+                    `[초청자] ${name}님의 전화번호(${formatted})가 복사되었습니다!\n\n` +
+                    `1. 휴대폰 전화 앱에서 [+ 새 연락처 등록]을 누르시면 주소록에 바로 저장됩니다.\n` +
+                    `2. 카카오톡 [친구 추가 > 연락처로 추가]에 바로 붙여넣으셔도 됩니다.\n\n` +
+                    `지금 전화 화면으로 이동하여 연락처에 저장하시겠습니까?`
+                );
+                if (choice) {
+                    window.location.href = `tel:${cleanPhone}`;
+                }
+            }).catch(() => {
+                window.location.href = `tel:${cleanPhone}`;
+            });
         }
 
         function filterData() {
@@ -686,7 +677,7 @@
                     <div class="action-btn-group">
                         <a href="tel:${inviterPhoneClean}" class="btn-action btn-call">📞 통화</a>
                         <button class="btn-action btn-sms" onclick="sendSmsToInviter('${inviterPhoneClean}')">💬 문자</button>
-                        <button class="btn-action btn-save-contact" onclick="saveContact('${item.inviter}', '${inviterPhoneClean}')">👤 연락처 저장</button>
+                        <button class="btn-action btn-save-contact" onclick="handleSaveContact('${item.inviter}', '${inviterPhoneClean}')">👤 연락처 저장</button>
                         <button class="btn-action btn-copy" onclick="copyKakaoMessage()">📋 카톡용 복사</button>
                     </div>
                 ` : `

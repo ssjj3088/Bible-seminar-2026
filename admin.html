@@ -69,9 +69,6 @@
             font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
 
         /* Container */
@@ -211,11 +208,19 @@
 
         /* Section Boxes */
         .info-section {
-            background: #f8fafc;
-            border: 1px solid #eef2f6;
             border-radius: 8px;
             padding: 10px 12px;
             margin-bottom: 8px;
+        }
+
+        .inviter-section {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+
+        .invitee-section {
+            background: #f8fafc;
+            border: 1px solid #eef2f6;
         }
 
         .info-section-header {
@@ -228,6 +233,10 @@
         .section-label {
             font-size: 0.78rem;
             font-weight: 700;
+            color: #1e40af;
+        }
+
+        .invitee-section .section-label {
             color: var(--text-muted);
         }
 
@@ -250,10 +259,10 @@
             justify-content: center;
             gap: 4px;
             text-decoration: none;
-            padding: 6px 11px;
+            padding: 7px 12px;
             border-radius: 6px;
-            font-size: 0.78rem;
-            font-weight: 600;
+            font-size: 0.82rem;
+            font-weight: 700;
             cursor: pointer;
             border: none;
             transition: transform 0.1s;
@@ -264,21 +273,18 @@
         }
 
         .btn-call {
-            background: #e8f5e9;
-            color: #1b5e20;
-            border: 1px solid #c8e6c9;
+            background: #2563eb;
+            color: #ffffff;
         }
 
         .btn-sms {
-            background: #e3f2fd;
-            color: #0d47a1;
-            border: 1px solid #bbdefb;
+            background: #0284c7;
+            color: #ffffff;
         }
 
         .btn-copy {
-            background: #fff8e1;
-            color: #b7791f;
-            border: 1px solid #fef3c7;
+            background: #f59e0b;
+            color: #ffffff;
         }
 
         .note-box {
@@ -452,10 +458,10 @@
             if (e.key === 'Enter') checkAuth();
         });
 
-        // 전화번호 포맷터 (누락된 앞 0 복구 및 하이픈 추가)
+        // 전화번호 포맷터
         function formatPhone(p) {
             if (!p) return "";
-            let num = String(p).replace(/[^0-9]/g, '');
+            let num = String(p).trim().replace(/[^0-9]/g, '');
             if (num.startsWith('10') && num.length === 10) {
                 num = '0' + num;
             }
@@ -467,7 +473,21 @@
             return p;
         }
 
-        // 접수일시 깔끔하게 포맷팅
+        // 전화번호에서 숫자만 추출 (1개만 정확히)
+        function extractCleanSinglePhone(p) {
+            if (!p) return "";
+            let s = String(p).trim();
+            // 혹시 쉼표로 합쳐져 들어온 경우 첫 번째 유효 번호만 추출
+            let matches = s.match(/(0?10\d{7,8}|\d{9,11})/g);
+            if (matches && matches.length > 0) {
+                let num = matches[0];
+                if (num.startsWith('10') && num.length === 10) num = '0' + num;
+                return num;
+            }
+            return s.replace(/[^0-9]/g, '');
+        }
+
+        // 접수일시 포맷팅
         function formatCleanDate(raw) {
             if (!raw) return "";
             try {
@@ -498,7 +518,42 @@
                 }
 
                 if (result.result === 'success') {
-                    allApplicants = result.data || [];
+                    // 데이터 정제 (만약 구글 시트에서 전체 줄이 쉼표로 합쳐져 온 경우 대비한 2중 안전 분리)
+                    allApplicants = (result.data || []).map(item => {
+                        let inviter = item.inviter || "";
+                        let inviterPhone = item.inviterPhone || "";
+                        let invitee = item.invitee || "";
+                        let inviteePhone = item.inviteePhone || "";
+                        let day = item.day || "";
+                        let time = item.time || "";
+                        let note = item.note || "";
+
+                        // 혹시 전체 행이 하나의 문자열로 뭉쳐진 경우 자동 파싱
+                        if (inviter.includes(",") && inviter.includes("10.")) {
+                            let parts = inviter.split(",");
+                            if (parts.length >= 7) {
+                                inviter = parts[1] || "";
+                                inviterPhone = parts[2] || "";
+                                invitee = parts[3] || "";
+                                inviteePhone = parts[4] || "";
+                                day = parts[5] || "";
+                                time = parts[6] || "";
+                                note = parts[7] || "";
+                            }
+                        }
+
+                        return {
+                            timestamp: item.timestamp,
+                            inviter: inviter,
+                            inviterPhone: inviterPhone,
+                            invitee: invitee,
+                            inviteePhone: inviteePhone,
+                            day: day,
+                            time: time,
+                            note: note
+                        };
+                    });
+
                     updateStats();
                     filterData();
                 } else {
@@ -524,31 +579,26 @@
             filterData();
         }
 
-        // 안내 문자 템플릿
-        function makeSmsMessage(name, day, time) {
-            return `안녕하세요 ${name}님,\n기쁜소식부산대연교회 부울경 성경세미나 신앙상담 안내드립니다.\n\n- 희망일시: ${day} ${time}\n- 장소: 기쁜소식부산대연교회\n\n세미나 장소에서 뵙겠습니다. 감사합니다.`;
-        }
-
-        // 문자 앱 열기
-        function sendSms(phone, name, day, time) {
-            const cleanPhone = String(phone).replace(/[^0-9]/g, '');
+        // 초청자에게 보내는 확인 문자
+        function sendSmsToInviter(phone) {
+            const cleanPhone = extractCleanSinglePhone(phone);
             if (!cleanPhone) {
-                alert("연락처가 등록되어 있지 않습니다.");
+                alert("초청자 연락처가 등록되어 있지 않습니다.");
                 return;
             }
-            const body = makeSmsMessage(name, day, time);
+            const body = "안녕하세요. 오늘 초청하신 분 오셨는지 상담 가능하신지 여부 확인 부탁드립니다.";
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             const separator = isIOS ? '&' : '?';
             window.location.href = `sms:${cleanPhone}${separator}body=${encodeURIComponent(body)}`;
         }
 
-        // 카카오톡용 문구 복사
-        function copySms(name, day, time) {
-            const msg = makeSmsMessage(name, day, time);
+        // 요청하신 카카오톡 확인 메시지 복사
+        function copyKakaoMessage() {
+            const msg = "안녕하세요. 오늘 초청하신 분 오셨는지 상담 가능하신지 여부 확인 부탁드립니다.";
             navigator.clipboard.writeText(msg).then(() => {
-                alert(`${name}님을 위한 안내 문구가 복사되었습니다!\n카카오톡이나 문자에 붙여넣기 하시면 됩니다.`);
+                alert("확인 메시지가 복사되었습니다!\n\n「" + msg + "」\n\n카카오톡에 그대로 붙여넣기 하시면 됩니다.");
             }).catch(() => {
-                prompt("아래 문구를 복사해서 사용하세요:", msg);
+                prompt("아래 문구를 복사해서 카카오톡에 붙여넣으세요:", msg);
             });
         }
 
@@ -579,25 +629,32 @@
             }
 
             listEl.innerHTML = filtered.map(item => {
-                const inviteePhoneFormatted = formatPhone(item.inviteePhone);
-                const inviterPhoneFormatted = formatPhone(item.inviterPhone);
-                const rawInviteePhone = String(item.inviteePhone || "").replace(/[^0-9]/g, '');
-                const rawInviterPhone = String(item.inviterPhone || "").replace(/[^0-9]/g, '');
+                const inviteePhoneClean = extractCleanSinglePhone(item.inviteePhone);
+                const inviterPhoneClean = extractCleanSinglePhone(item.inviterPhone);
 
-                const inviteeActions = inviteePhoneFormatted ? `
-                    <div class="action-btn-group">
-                        <a href="tel:${rawInviteePhone}" class="btn-action btn-call">📞 통화</a>
-                        <button class="btn-action btn-sms" onclick="sendSms('${rawInviteePhone}', '${item.invitee}', '${item.day}', '${item.time}')">💬 문자</button>
-                        <button class="btn-action btn-copy" onclick="copySms('${item.invitee}', '${item.day}', '${item.time}')">📋 카톡용 복사</button>
-                    </div>
-                ` : '<span style="color:#aaa; font-size:0.8rem;">연락처 없음</span>';
+                const inviteePhoneFormatted = formatPhone(inviteePhoneClean);
+                const inviterPhoneFormatted = formatPhone(inviterPhoneClean);
 
-                const inviterActions = inviterPhoneFormatted ? `
+                // 초청자 액션 버튼 (통화, 문자, 카톡용 복사 모두 초청자 기준!)
+                const inviterActions = inviterPhoneClean ? `
                     <div class="action-btn-group">
-                        <a href="tel:${rawInviterPhone}" class="btn-action btn-call">📞 통화</a>
-                        <button class="btn-action btn-sms" onclick="sendSms('${rawInviterPhone}', '${item.inviter}', '${item.day}', '${item.time}')">💬 문자</button>
+                        <a href="tel:${inviterPhoneClean}" class="btn-action btn-call">📞 초청자 통화</a>
+                        <button class="btn-action btn-sms" onclick="sendSmsToInviter('${inviterPhoneClean}')">💬 초청자 문자</button>
+                        <button class="btn-action btn-copy" onclick="copyKakaoMessage()">📋 카톡용 복사</button>
                     </div>
-                ` : '';
+                ` : `
+                    <div class="action-btn-group">
+                        <button class="btn-action btn-copy" onclick="copyKakaoMessage()">📋 카톡용 복사</button>
+                        <span style="color:#94a3b8; font-size:0.8rem; align-self:center;">초청자 번호 없음</span>
+                    </div>
+                `;
+
+                // 대상자 전화 통화 버튼
+                const inviteeActions = inviteePhoneClean ? `
+                    <a href="tel:${inviteePhoneClean}" style="display:inline-flex; align-items:center; gap:3px; background:#e2e8f0; color:#334155; text-decoration:none; padding:3px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;">
+                        📞 ${inviteePhoneFormatted}
+                    </a>
+                ` : '<span style="color:#94a3b8; font-size:0.8rem;">연락처 없음</span>';
 
                 const noteHtml = item.note ? `<div class="note-box">💬 <strong>전달사항:</strong> ${item.note}</div>` : '';
 
@@ -606,33 +663,32 @@
                         <div class="card-header-row">
                             <div class="target-name-area">
                                 <span class="target-name">${item.invitee}</span>
-                                <span class="target-honorific">님</span>
+                                <span class="target-honorific">님 (초청받으신 분)</span>
                             </div>
                             <div class="schedule-badge">
                                 ${item.day} ${item.time}
                             </div>
                         </div>
 
-                        <!-- 대상자 섹션 -->
-                        <div class="info-section">
+                        <!-- 초청자 섹션 (연락 핵심) -->
+                        <div class="info-section inviter-section">
                             <div class="info-section-header">
-                                <span class="section-label">초청받으신 분</span>
-                                <span class="section-person">${item.invitee} (${inviteePhoneFormatted || '번호없음'})</span>
-                            </div>
-                            ${inviteeActions}
-                        </div>
-
-                        <!-- 초청자 섹션 -->
-                        <div class="info-section">
-                            <div class="info-section-header">
-                                <span class="section-label">초청자</span>
+                                <span class="section-label">📢 초청자 안내 및 연락</span>
                                 <span class="section-person">${item.inviter} ${inviterPhoneFormatted ? `(${inviterPhoneFormatted})` : ''}</span>
                             </div>
                             ${inviterActions}
                         </div>
 
+                        <!-- 초청받으신 분 정보 -->
+                        <div class="info-section invitee-section">
+                            <div class="info-section-header">
+                                <span class="section-label">초청받으신 분 연락처</span>
+                                <div>${inviteeActions}</div>
+                            </div>
+                        </div>
+
                         ${noteHtml}
-                        <div class="card-footer-time">접수: ${formatCleanDate(item.timestamp)}</div>
+                        <div class="card-footer-time">접수일시: ${formatCleanDate(item.timestamp)}</div>
                     </div>
                 `;
             }).join('');

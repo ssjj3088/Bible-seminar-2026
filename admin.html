@@ -69,6 +69,9 @@
             font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         /* Container */
@@ -209,13 +212,13 @@
         /* Section Boxes */
         .info-section {
             border-radius: 8px;
-            padding: 10px 12px;
+            padding: 11px 12px;
             margin-bottom: 8px;
         }
 
         .inviter-section {
             background: #eff6ff;
-            border: 1px solid #bfdbfe;
+            border: 1.5px solid #bfdbfe;
         }
 
         .invitee-section {
@@ -231,9 +234,12 @@
         }
 
         .section-label {
-            font-size: 0.78rem;
+            font-size: 0.82rem;
             font-weight: 700;
-            color: #1e40af;
+            color: #1d4ed8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .invitee-section .section-label {
@@ -241,8 +247,8 @@
         }
 
         .section-person {
-            font-size: 0.95rem;
-            font-weight: 600;
+            font-size: 0.96rem;
+            font-weight: 700;
             color: #1e293b;
         }
 
@@ -250,7 +256,7 @@
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
-            margin-top: 6px;
+            margin-top: 8px;
         }
 
         .btn-action {
@@ -259,9 +265,9 @@
             justify-content: center;
             gap: 4px;
             text-decoration: none;
-            padding: 7px 12px;
+            padding: 7px 11px;
             border-radius: 6px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 700;
             cursor: pointer;
             border: none;
@@ -284,6 +290,11 @@
 
         .btn-copy {
             background: #f59e0b;
+            color: #ffffff;
+        }
+
+        .btn-save-contact {
+            background: #475569;
             color: #ffffff;
         }
 
@@ -418,7 +429,7 @@
 
         <!-- 필터 및 검색 -->
         <div class="filter-box">
-            <input type="text" id="searchInput" class="search-input" placeholder="이름 또는 전화번호 뒷자리 검색..." oninput="filterData()">
+            <input type="text" id="searchInput" class="search-input" placeholder="이름 또는 전화번호 검색..." oninput="filterData()">
             <div class="day-tabs">
                 <button class="day-tab active" onclick="setDayFilter('all', this)">전체보기</button>
                 <button class="day-tab" onclick="setDayFilter('10.14', this)">10.14(수)</button>
@@ -473,11 +484,10 @@
             return p;
         }
 
-        // 전화번호에서 숫자만 추출 (1개만 정확히)
-        function extractCleanSinglePhone(p) {
+        // 전화번호 단일 추출
+        function extractSinglePhone(p) {
             if (!p) return "";
             let s = String(p).trim();
-            // 혹시 쉼표로 합쳐져 들어온 경우 첫 번째 유효 번호만 추출
             let matches = s.match(/(0?10\d{7,8}|\d{9,11})/g);
             if (matches && matches.length > 0) {
                 let num = matches[0];
@@ -518,7 +528,7 @@
                 }
 
                 if (result.result === 'success') {
-                    // 데이터 정제 (만약 구글 시트에서 전체 줄이 쉼표로 합쳐져 온 경우 대비한 2중 안전 분리)
+                    // 데이터 자동 분리 복구 로직 (서버에서 한 줄로 합쳐져 온 경우에도 완벽 분리)
                     allApplicants = (result.data || []).map(item => {
                         let inviter = item.inviter || "";
                         let inviterPhone = item.inviterPhone || "";
@@ -527,23 +537,25 @@
                         let day = item.day || "";
                         let time = item.time || "";
                         let note = item.note || "";
+                        let ts = item.timestamp || "";
 
-                        // 혹시 전체 행이 하나의 문자열로 뭉쳐진 경우 자동 파싱
-                        if (inviter.includes(",") && inviter.includes("10.")) {
+                        // 전체 줄이 쉼표로 뭉쳐져 있는 경우 분리
+                        if (inviter.includes(",") && (inviter.includes("10.") || inviter.includes("GMT"))) {
                             let parts = inviter.split(",");
                             if (parts.length >= 7) {
+                                ts = parts[0] || ts;
                                 inviter = parts[1] || "";
                                 inviterPhone = parts[2] || "";
                                 invitee = parts[3] || "";
                                 inviteePhone = parts[4] || "";
                                 day = parts[5] || "";
                                 time = parts[6] || "";
-                                note = parts[7] || "";
+                                note = parts.slice(7).join(",") || "";
                             }
                         }
 
                         return {
-                            timestamp: item.timestamp,
+                            timestamp: ts,
                             inviter: inviter,
                             inviterPhone: inviterPhone,
                             invitee: invitee,
@@ -579,11 +591,11 @@
             filterData();
         }
 
-        // 초청자에게 보내는 확인 문자
+        // 초청자에게 보내는 확인 문자 (요청 문구 적용)
         function sendSmsToInviter(phone) {
-            const cleanPhone = extractCleanSinglePhone(phone);
+            const cleanPhone = extractSinglePhone(phone);
             if (!cleanPhone) {
-                alert("초청자 연락처가 등록되어 있지 않습니다.");
+                alert("초청자 연락처가 없습니다.");
                 return;
             }
             const body = "안녕하세요. 오늘 초청하신 분 오셨는지 상담 가능하신지 여부 확인 부탁드립니다.";
@@ -600,6 +612,27 @@
             }).catch(() => {
                 prompt("아래 문구를 복사해서 카카오톡에 붙여넣으세요:", msg);
             });
+        }
+
+        // 초청자 연락처 스마트폰 주소록에 바로 저장 (vCard 다운로드)
+        function saveContact(name, phone) {
+            const cleanPhone = extractSinglePhone(phone);
+            if (!cleanPhone) {
+                alert("연락처가 없습니다.");
+                return;
+            }
+            const formatted = formatPhone(cleanPhone);
+            const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:[초청자] ${name}\nTEL;TYPE=CELL:${formatted}\nNOTE:성경세미나 초청자\nEND:VCARD`;
+            const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `[초청자]_${name}.vcf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert(`[초청자] ${name}님의 연락처 파일이 열립니다.\n휴대폰 주소록에 저장하시면 카카오톡 친구 목록에 자동으로 뜹니다!`);
         }
 
         function filterData() {
@@ -629,18 +662,19 @@
             }
 
             listEl.innerHTML = filtered.map(item => {
-                const inviteePhoneClean = extractCleanSinglePhone(item.inviteePhone);
-                const inviterPhoneClean = extractCleanSinglePhone(item.inviterPhone);
+                const inviterPhoneClean = extractSinglePhone(item.inviterPhone);
+                const inviteePhoneClean = extractSinglePhone(item.inviteePhone);
 
-                const inviteePhoneFormatted = formatPhone(inviteePhoneClean);
                 const inviterPhoneFormatted = formatPhone(inviterPhoneClean);
+                const inviteePhoneFormatted = formatPhone(inviteePhoneClean);
 
-                // 초청자 액션 버튼 (통화, 문자, 카톡용 복사 모두 초청자 기준!)
+                // 초청자 액션 버튼 (통화, 문자, 카톡복사, 연락처저장)
                 const inviterActions = inviterPhoneClean ? `
                     <div class="action-btn-group">
                         <a href="tel:${inviterPhoneClean}" class="btn-action btn-call">📞 초청자 통화</a>
                         <button class="btn-action btn-sms" onclick="sendSmsToInviter('${inviterPhoneClean}')">💬 초청자 문자</button>
                         <button class="btn-action btn-copy" onclick="copyKakaoMessage()">📋 카톡용 복사</button>
+                        <button class="btn-action btn-save-contact" onclick="saveContact('${item.inviter}', '${inviterPhoneClean}')">👤 연락처 저장</button>
                     </div>
                 ` : `
                     <div class="action-btn-group">
@@ -649,7 +683,7 @@
                     </div>
                 `;
 
-                // 대상자 전화 통화 버튼
+                // 초청받으신 분 액션 버튼
                 const inviteeActions = inviteePhoneClean ? `
                     <a href="tel:${inviteePhoneClean}" style="display:inline-flex; align-items:center; gap:3px; background:#e2e8f0; color:#334155; text-decoration:none; padding:3px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;">
                         📞 ${inviteePhoneFormatted}
@@ -670,7 +704,7 @@
                             </div>
                         </div>
 
-                        <!-- 초청자 섹션 (연락 핵심) -->
+                        <!-- 초청자 섹션 (통화/문자/카톡 연결의 핵심) -->
                         <div class="info-section inviter-section">
                             <div class="info-section-header">
                                 <span class="section-label">📢 초청자 안내 및 연락</span>

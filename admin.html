@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부울경 성경세미나 신앙상담 접수 현황 (관리자)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-navy: #0b1a3d;
+            --accent-gold: #c59b27;
+            --bg-gray: #f4f6fa;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #222222;
+            --text-muted: #666666;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-gray);
+            color: var(--text-main);
+            padding-bottom: 50px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Header */
+        .admin-header {
+            background-color: var(--primary-navy);
+            color: #ffffff;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-gold);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .header-title p {
+            font-size: 0.75rem;
+            color: var(--accent-gold);
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid var(--accent-gold);
+            color: #ffffff;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Container */
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Stats Bar */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            padding: 12px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .stat-card.active {
+            border-color: var(--primary-navy);
+            background: #ebf1fa;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+        }
+
+        .stat-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary-navy);
+        }
+
+        /* Search & Filter */
+        .filter-box {
+            background: #ffffff;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #dcdcdc;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-gold);
+        }
+
+        .day-tabs {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .day-tab {
+            padding: 6px 14px;
+            background: #f0f2f5;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #555555;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .day-tab.active {
+            background: var(--primary-navy);
+            color: #ffffff;
+            border-color: var(--primary-navy);
+        }
+
+        /* List Cards */
+        .applicant-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed #edf0f5;
+            padding-bottom: 10px;
+        }
+
+        .target-name {
+            font-size: 1.22rem;
+            font-weight: 700;
+            color: var(--primary-navy);
+        }
+
+        .schedule-badge {
+            background: #fbf5e6;
+            color: #8c6a0c;
+            border: 1px solid #eddcb0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .person-section {
+            background: #f9fbfd;
+            border: 1px solid #eef2f7;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+        }
+
+        .person-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .person-role {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .person-name {
+            font-weight: 600;
+            color: #222;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-call {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #c8e6c9;
+        }
+
+        .btn-sms {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #bbdefb;
+        }
+
+        .btn-copy {
+            background: #fff8e1;
+            color: #f57f17;
+            border: 1px solid #ffe082;
+        }
+
+        .btn-action:active {
+            transform: scale(0.96);
+        }
+
+        .note-box {
+            background: #fffdf8;
+            border: 1px solid #f2e9d2;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #555;
+            line-height: 1.45;
+        }
+
+        .card-footer {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: #999999;
+            text-align: right;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #888888;
+            font-size: 0.95rem;
+        }
+
+        /* Password Modal */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 26, 61, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 360px;
+            padding: 30px 24px;
+            border-radius: 14px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .auth-card h2 {
+            font-size: 1.25rem;
+            color: var(--primary-navy);
+            margin-bottom: 8px;
+        }
+
+        .auth-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            letter-spacing: 4px;
+            margin-bottom: 14px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-navy);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 비밀번호 인증 모달 -->
+    <div id="authModal" class="auth-overlay">
+        <div class="auth-card">
+            <h2>관리자 인증</h2>
+            <p>신청자 개인정보 조회를 위해 비밀번호를 입력해주세요.</p>
+            <input type="password" id="pwInput" class="auth-input" placeholder="비밀번호" autofocus>
+            <button class="auth-btn" onclick="checkAuth()">확인</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-title">
+            <h1>신앙상담 접수 현황</h1>
+            <p>기쁜소식부산대연교회</p>
+        </div>
+        <button class="refresh-btn" onclick="fetchData()">새로고침</button>
+    </header>
+
+    <div class="container">
+        <!-- 요약 바 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">전체 접수</div>
+                <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">10.14(수)</div>
+                <div class="stat-value" id="statWed">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">10.15(목)</div>
+                <div class="stat-value" id="statThu">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">10.16(금)</div>
+                <div class="stat-value" id="statFri">0</div>
+            </div>
+        </div>
+
+        <!-- 필터 및 검색 -->
+        <div class="filter-box">
+            <input type="text" id="searchInput" class="search-input" placeholder="이름 또는 연락처로 검색..." oninput="filterData()">
+            <div class="day-tabs">
+                <button class="day-tab active" onclick="setDayFilter('all', this)">전체보기</button>
+                <button class="day-tab" onclick="setDayFilter('10.14', this)">10.14(수)</button>
+                <button class="day-tab" onclick="setDayFilter('10.15', this)">10.15(목)</button>
+                <button class="day-tab" onclick="setDayFilter('10.16', this)">10.16(금)</button>
+            </div>
+        </div>
+
+        <!-- 신청자 카드 목록 -->
+        <div id="applicantList">
+            <div class="empty-state">신청자 데이터를 불러오는 중입니다...</div>
+        </div>
+    </div>
+
+    <script>
+        // Google Apps Script Web App URL
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyK2LTNVBcG6r-HWtGDNRtdXXiTbIWzoXmTBt9ibmRO37AtsFyZ0GAfyOtia5I5IiI/exec";
+        
+        // 관리자 비밀번호 (기본: 1234)
+        const ADMIN_PASSWORD = "1234";
+
+        let allApplicants = [];
+        let currentDayFilter = 'all';
+
+        function checkAuth() {
+            const input = document.getElementById('pwInput').value;
+            if (input === ADMIN_PASSWORD) {
+                document.getElementById('authModal').style.display = 'none';
+                fetchData();
+            } else {
+                alert("비밀번호가 일치하지 않습니다.");
+                document.getElementById('pwInput').value = "";
+            }
+        }
+
+        document.getElementById('pwInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkAuth();
+        });
+
+        async function fetchData() {
+            const listEl = document.getElementById('applicantList');
+            listEl.innerHTML = '<div class="empty-state">최신 명단을 불러오는 중...</div>';
+
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const result = await response.json();
+
+                if (result.result === 'success') {
+                    allApplicants = result.data;
+                    updateStats();
+                    filterData();
+                } else {
+                    listEl.innerHTML = '<div class="empty-state">데이터를 가져오지 못했습니다.<br>' + result.message + '</div>';
+                }
+            } catch (err) {
+                console.error(err);
+                listEl.innerHTML = '<div class="empty-state">네트워크 연결에 실패했습니다. 다시 시도해 주세요.</div>';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('statTotal').textContent = allApplicants.length;
+            document.getElementById('statWed').textContent = allApplicants.filter(a => a.day.includes('10.14')).length;
+            document.getElementById('statThu').textContent = allApplicants.filter(a => a.day.includes('10.15')).length;
+            document.getElementById('statFri').textContent = allApplicants.filter(a => a.day.includes('10.16')).length;
+        }
+
+        function setDayFilter(day, el) {
+            currentDayFilter = day;
+            document.querySelectorAll('.day-tab').forEach(tab => tab.classList.remove('active'));
+            el.classList.add('active');
+            filterData();
+        }
+
+        // 안내 문자 템플릿 생성기
+        function makeSmsMessage(name, day, time) {
+            return `안녕하세요 ${name}님,\n기쁜소식부산대연교회 부울경 성경세미나 신앙상담 신청 안내드립니다.\n\n- 희망일시: ${day} ${time}\n- 장소: 기쁜소식부산대연교회\n\n세미나 장소에서 뵙겠습니다. 감사합니다.`;
+        }
+
+        // 스마트폰 기본 문자 앱 자동 실행
+        function sendSms(phone, name, day, time) {
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (!cleanPhone) {
+                alert("연락처가 등록되어 있지 않습니다.");
+                return;
+            }
+            const body = makeSmsMessage(name, day, time);
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const separator = isIOS ? '&' : '?';
+            window.location.href = `sms:${cleanPhone}${separator}body=${encodeURIComponent(body)}`;
+        }
+
+        // 카카오톡/문자용 문구 복사
+        function copySms(name, day, time) {
+            const msg = makeSmsMessage(name, day, time);
+            navigator.clipboard.writeText(msg).then(() => {
+                alert(`${name}님을 위한 안내 문구가 복사되었습니다!\n카카오톡이나 문자에 붙여넣기 하시면 됩니다.`);
+            }).catch(() => {
+                prompt("아래 문구를 복사해서 사용하세요:", msg);
+            });
+        }
+
+        function filterData() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const listEl = document.getElementById('applicantList');
+
+            const filtered = allApplicants.filter(item => {
+                const matchDay = currentDayFilter === 'all' || item.day.includes(currentDayFilter);
+                const matchQuery = !query || 
+                    item.invitee.toLowerCase().includes(query) ||
+                    item.inviter.toLowerCase().includes(query) ||
+                    item.inviteePhone.includes(query) ||
+                    item.inviterPhone.includes(query);
+                return matchDay && matchQuery;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">해당하는 신청 내역이 없습니다.</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(item => {
+                const cleanInviteePhone = item.inviteePhone.replace(/[^0-9]/g, '');
+                const cleanInviterPhone = item.inviterPhone.replace(/[^0-9]/g, '');
+
+                const inviteeActions = cleanInviteePhone ? `
+                    <div class="action-buttons">
+                        <a href="tel:${cleanInviteePhone}" class="btn-action btn-call">📞 통화</a>
+                        <button class="btn-action btn-sms" onclick="sendSms('${cleanInviteePhone}', '${item.invitee}', '${item.day}', '${item.time}')">💬 문자</button>
+                        <button class="btn-action btn-copy" onclick="copySms('${item.invitee}', '${item.day}', '${item.time}')">📋 카톡용 복사</button>
+                    </div>
+                ` : '<span style="color:#aaa; font-size:0.8rem;">연락처 없음</span>';
+
+                const inviterActions = cleanInviterPhone ? `
+                    <div class="action-buttons">
+                        <a href="tel:${cleanInviterPhone}" class="btn-action btn-call">📞 통화</a>
+                        <button class="btn-action btn-sms" onclick="sendSms('${cleanInviterPhone}', '${item.inviter}', '${item.day}', '${item.time}')">💬 문자</button>
+                    </div>
+                ` : '';
+
+                const noteHtml = item.note ? `<div class="note-box">💬 <strong>전달사항:</strong> ${item.note}</div>` : '';
+
+                return `
+                    <div class="applicant-card">
+                        <div class="card-top">
+                            <div>
+                                <span class="target-name">${item.invitee}</span>
+                                <span style="font-size:0.85rem; color:#777; margin-left:4px;">님</span>
+                            </div>
+                            <div class="schedule-badge">
+                                ${item.day} ${item.time}
+                            </div>
+                        </div>
+
+                        <!-- 대상자 섹션 -->
+                        <div class="person-section">
+                            <div class="person-header">
+                                <span class="person-role">초청받으신 분</span>
+                                <span class="person-name">${item.invitee} (${item.inviteePhone || '번호없음'})</span>
+                            </div>
+                            ${inviteeActions}
+                        </div>
+
+                        <!-- 초청자 섹션 -->
+                        <div class="person-section">
+                            <div class="person-header">
+                                <span class="person-role">초청자</span>
+                                <span class="person-name">${item.inviter} ${item.inviterPhone ? `(${item.inviterPhone})` : ''}</span>
+                            </div>
+                            ${inviterActions}
+                        </div>
+
+                        ${noteHtml}
+                        <div class="card-footer">접수: ${item.timestamp}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>

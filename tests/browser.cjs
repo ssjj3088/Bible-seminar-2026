@@ -4,7 +4,7 @@ const path = require('node:path');
 const {chromium} = require(process.env.QA_PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
 const evidence = [];
-const key = 'test-only-access-key-'.repeat(3);
+const key = '1234'; // Test fixture only; the production PIN is entered by its owner.
 
 async function openPage(browser, filename, width = 360) {
     const page = await browser.newPage({viewport: {width, height: 800}});

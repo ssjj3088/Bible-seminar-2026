@@ -429,9 +429,9 @@
     <div id="authModal" class="auth-overlay">
         <div class="auth-card">
             <h2>관리자 인증</h2>
-            <p>신청자 개인정보 조회를 위해 관리자 접근 키를 입력해주세요.</p>
-            <label for="pwInput" class="auth-label">관리자 접근 키</label>
-            <input type="password" id="pwInput" class="auth-input" placeholder="관리자 접근 키" autocomplete="off" autofocus>
+            <p>신청자 개인정보 조회를 위해 관리자 PIN을 입력해주세요.</p>
+            <label for="pwInput" class="auth-label">관리자 PIN</label>
+            <input type="password" id="pwInput" class="auth-input" placeholder="4자리 숫자 PIN" inputmode="numeric" maxlength="256" autocomplete="off" autofocus>
             <button class="auth-btn" onclick="checkAuth()">확인</button>
         </div>
     </div>
@@ -503,9 +503,9 @@
             if (fetching) return;
             const input = document.getElementById('pwInput');
             adminToken = input.value.trim();
-            if (adminToken.length < 32 || adminToken.length > 256) {
+            if (!/^\d{4}$/.test(adminToken) && (adminToken.length < 32 || adminToken.length > 256)) {
                 adminToken = '';
-                alert('설정한 32자 이상의 관리자 접근 키를 입력해주세요.');
+                alert('설정한 32자 이상의 관리자 PIN을 입력해주세요.');
                 return;
             }
             const ok = await fetchData();
@@ -634,7 +634,7 @@
                     ? '인증이 필요합니다.'
                     : '갱신 실패 · 표시된 명단은 최신 정보가 아닐 수 있습니다.';
                 if (!background) alert(error.message === 'UNAUTHORIZED'
-                    ? '관리자 접근 키를 확인해주세요.'
+                    ? '관리자 PIN을 확인해주세요.'
                     : '명단을 갱신하지 못했습니다. 기존 명단은 최신 정보가 아닐 수 있습니다. 다시 시도해주세요.');
                 return false;
             } finally { fetching = false; refresh.disabled = false; }

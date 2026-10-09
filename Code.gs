@@ -1,7 +1,7 @@
 /** 부울경 성경세미나 상담 접수 API.
  * SPREADSHEET_ID: 대상 스프레드시트 ID
  * SHEET_NAME: A:H 헤더가 존재하는 접수 시트 이름 (I열: 초청자 소속 교회)
- * ADMIN_TOKEN_SHA256: 32자 이상 무작위 접근 키의 SHA-256 소문자 hex
+ * ADMIN_TOKEN_SHA256: 4자리 숫자 PIN 또는 32~256자 접근 키의 SHA-256 소문자 hex
  * 실제 접근 키는 관리자에게 별도 전달하고 HTML/Git에 저장하지 않는다.
  */
 // 시트에 연결된 Apps Script 편집기에서 직접 실행하는 초기 설정 함수.
@@ -9,13 +9,13 @@ function configureCounseling() {
   var ui = SpreadsheetApp.getUi();
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = spreadsheet.getActiveSheet();
-  var response = ui.prompt('관리자 접근 키 설정',
-    '접수 탭: ' + sheet.getName() + '\n비밀번호 관리자에서 생성한 32~256자의 무작위 키를 입력하세요. 기존 1234는 사용할 수 없습니다.',
+  var response = ui.prompt('관리자 PIN 설정',
+    '접수 탭: ' + sheet.getName() + '\n관리자들이 함께 사용할 4자리 숫자 PIN을 입력하세요. 32~256자의 접근 키도 사용할 수 있습니다.',
     ui.ButtonSet.OK_CANCEL);
   if (response.getSelectedButton() !== ui.Button.OK) return;
   var token = response.getResponseText().trim();
-  if (token.length < 32 || token.length > 256) {
-    ui.alert('접근 키는 32~256자로 입력해주세요.');
+  if (!validCredential_(token)) {
+    ui.alert('4자리 숫자 PIN 또는 32~256자의 접근 키를 입력해주세요.');
     return;
   }
   if (sheet.getLastRow() === 0) {
@@ -100,8 +100,12 @@ function cell_(value) {
   // 텍스트 서식만으로 수식 해석 방지를 보장하지 않는다.
   return /^[=+@-]/.test(value) ? "'" + value : value;
 }
+function validCredential_(token) {
+  return typeof token === 'string' && (/^\d{4}$/.test(token) ||
+    (token.length >= 32 && token.length <= 256));
+}
 function authorized_(token, config) {
-  if (typeof token !== 'string' || token.length < 32 || token.length > 256 ||
+  if (!validCredential_(token) ||
       !/^[a-f0-9]{64}$/.test(config.ADMIN_TOKEN_SHA256 || '')) return false;
   var hash = hash_(token);
   var diff = 0;

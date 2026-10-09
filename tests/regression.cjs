@@ -33,7 +33,7 @@ const sheet={
 const gas={console,PropertiesService:{getScriptProperties:()=>({getProperties:()=>({SPREADSHEET_ID:'mock',SHEET_NAME:'mock',ADMIN_TOKEN_SHA256:crypto.createHash('sha256').update(key).digest('hex')})})},LockService:{getScriptLock:()=>({tryLock:()=>lockAvailable,releaseLock(){}})},SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet}),flush(){flushes++}},Utilities:{formatDate:()=> '2026-10-07 15:00:00',DigestAlgorithm:{SHA_256:'sha256'},Charset:{UTF_8:'utf8'},computeDigest:(alg,text)=>[...crypto.createHash('sha256').update(text).digest()]},ContentService:{MimeType:{JSON:'JSON'},createTextOutput:s=>({text:s,setMimeType(){return this}})}};
 vm.createContext(gas);vm.runInContext(fs.readFileSync(proposed+'Code.gs','utf8'),gas);const post=data=>JSON.parse(gas.doPost({parameter:data}).text);const valid={inviter:'송재용',inviter_phone:'1086123392',invitee:'김철수',invitee_phone:'010-1234-5678',day:'wed',time:'pm',note:'쉼표, 줄바꿈\n& <특수>',church:'  기쁜소식부산대연교회  '};
 check('public GET denied before reads',()=>{assert.equal(JSON.parse(gas.doGet({}).text).code,'UNAUTHORIZED');assert.equal(reads,0)});
-check('short PIN denied',()=>assert.equal(post({action:'list',admin_token:'1234'}).code,'UNAUTHORIZED'));
+check('unconfigured PIN denied',()=>assert.equal(post({action:'list',admin_token:'1234'}).code,'UNAUTHORIZED'));
 check('unknown operation denied',()=>assert.equal(post({action:'erase'}).code,'INVALID_INPUT'));
 check('wrong key denied',()=>assert.equal(post({action:'list',admin_token:'b'.repeat(48)}).code,'UNAUTHORIZED'));
 check('blank rejected',()=>assert.equal(post({}).code,'INVALID_INPUT'));
@@ -55,7 +55,10 @@ gas.SpreadsheetApp.getActiveSpreadsheet=()=>({getId:()=> 'test-sheet',getActiveS
 gas.SpreadsheetApp.getUi=()=>({ButtonSet:{OK_CANCEL:'OK_CANCEL'},Button:{OK:'OK'},prompt:()=>({getSelectedButton:()=>selected,getResponseText:()=>setupToken}),alert(){}});
 gas.PropertiesService.getScriptProperties=()=>({setProperties:value=>{configured=value;}});
 selected='CANCEL';check('setup cancellation makes no changes',()=>{gas.configureCounseling();assert.equal(configured,undefined)});
-selected='OK';setupToken='1234';check('setup rejects short PIN',()=>{gas.configureCounseling();assert.equal(configured,undefined)});
+selected='OK';setupToken='123';check('setup rejects invalid PIN',()=>{gas.configureCounseling();assert.equal(configured,undefined)});
+setupToken='1234';check('setup accepts 4-digit PIN and stores only hash',()=>{gas.configureCounseling();assert.equal(configured.ADMIN_TOKEN_SHA256,crypto.createHash('sha256').update(setupToken).digest('hex'));assert.equal(gas.authorized_('1234',configured),true);assert.equal(gas.authorized_('4321',configured),false);assert.equal(gas.authorized_('',configured),false);assert.equal(JSON.stringify(configured).includes(setupToken),false)});
+for (const value of ['123','12345','abcd','１２３４']) check('invalid PIN format '+value,()=>assert.equal(gas.validCredential_(value),false));
+check('PIN retains leading zero',()=>assert.equal(gas.authorized_('0123',{ADMIN_TOKEN_SHA256:crypto.createHash('sha256').update('0123').digest('hex')}),true));
 setupToken=key;const before=JSON.stringify(rows.map(row=>Array.from({length:8},(_,i)=>row[i]??'')));
 check('setup preserves existing data and stores only key hash',()=>{gas.configureCounseling();assert.equal(JSON.stringify(rows.map(row=>Array.from({length:8},(_,i)=>row[i]??''))),before);assert.equal(configured.SPREADSHEET_ID,'test-sheet');assert.equal(configured.SHEET_NAME,'접수');assert.equal(configured.ADMIN_TOKEN_SHA256,crypto.createHash('sha256').update(key).digest('hex'));assert.equal(JSON.stringify(configured).includes(key),false)});
 rows=[];check('setup adds 9 headers to empty sheet',()=>{gas.configureCounseling();assert.equal(rows.length,1);assert.equal(rows[0].length,9);assert.equal(rows[0][0],'접수일시');assert.equal(rows[0][8],'소속 교회')});

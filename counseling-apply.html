@@ -198,7 +198,7 @@
             padding: 12px 14px;
             border: 1.5px solid #d9e0e8;
             border-radius: 8px;
-            font-size: 0.96rem;
+            font-size: 1rem;
             color: var(--text-main);
             background-color: #fafbfd;
             transition: all 0.2s ease;
@@ -405,7 +405,13 @@
             <form id="counselingForm">
                 <div class="form-group">
                     <label for="inviter">초청자 이름 <span class="required-mark">*</span></label>
-                    <input type="text" id="inviter" name="inviter" placeholder="예: 홍길동" required>
+                    <input type="text" id="inviter" name="inviter" placeholder="예: 홍길동" maxlength="80" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="church">소속 교회 (선택)</label>
+                    <input type="text" id="church" name="church" placeholder="예: 기쁜소식부산대연교회" maxlength="100">
+                    <div class="input-hint">초청자의 소속 교회를 적어주세요. 소속이 없으면 비워두셔도 됩니다.</div>
                 </div>
 
                 <div class="form-group">
@@ -416,7 +422,7 @@
                 
                 <div class="form-group">
                     <label for="invitee">초청받으신 분 성함 <span class="required-mark">*</span></label>
-                    <input type="text" id="invitee" name="invitee" placeholder="예: 김철수" required>
+                    <input type="text" id="invitee" name="invitee" placeholder="예: 김철수" maxlength="80" required>
                 </div>
 
                 <div class="form-group">
@@ -445,11 +451,11 @@
                 
                 <div class="form-group">
                     <label for="note">기타 전달사항 (선택)</label>
-                    <textarea id="note" name="note" rows="3" placeholder="사역자님께서 상담 전 미리 아시면 좋을 내용이 있다면 간단히 적어주세요."></textarea>
+                    <textarea id="note" name="note" rows="3" maxlength="2000" placeholder="사역자님께서 상담 전 미리 아시면 좋을 내용이 있다면 간단히 적어주세요."></textarea>
                 </div>
                 
                 <button type="submit" id="submitBtn">상담 신청하기</button>
-                <div id="statusMessage" class="status-message"></div>
+                <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
             </form>
         </div>
 
@@ -487,8 +493,37 @@
         const submitBtn = document.getElementById('submitBtn');
         const statusMessage = document.getElementById('statusMessage');
 
+        // 한국 휴대전화/일반 유선번호만 허용. 여러 번호나 임의 문자열은 차단.
+        function normalizePhone(value) {
+            if (value == null || value === '') return '';
+            const raw = String(value).trim();
+            if (!/^\+?[0-9()\s-]+$/.test(raw)) return '';
+            let n = raw.replace(/[()\s-]/g, '');
+            if (n.startsWith('+82')) n = '0' + n.slice(3);
+            if (/^10\d{8}$/.test(n)) n = '0' + n;
+            const mobile = /^010\d{8}$|^01[16789]\d{7,8}$/;
+            const landline = /^02\d{7,8}$|^0(?:31|32|33|41|42|43|44|51|52|53|54|55|61|62|63|64)\d{7,8}$|^070\d{8}$/;
+            return mobile.test(n) || landline.test(n) ? n : '';
+        }
+        async function requestJson(url, options = {}) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 20000);
+            try {
+                const response = await fetch(url, {...options, signal: controller.signal});
+                if (!response.ok) throw new Error('HTTP_ERROR');
+                let result;
+                try { result = JSON.parse(await response.text()); }
+                catch { throw new Error('INVALID_RESPONSE'); }
+                if (!result || typeof result !== 'object' || Array.isArray(result)) {
+                    throw new Error('INVALID_RESPONSE');
+                }
+                if (result.result !== 'success') throw new Error(result.code || 'SERVER_ERROR');
+                return result;
+            } finally { clearTimeout(timer); }
+        }
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            if (submitBtn.disabled || !form.reportValidity()) return;
 
             if (!SCRIPT_URL) {
                 alert("구글 스프레드시트와 연동할 Apps Script 웹 앱 URL이 설정되지 않았습니다.\n제공해드린 Code.gs 가이드에 따라 웹 앱 URL을 SCRIPT_URL에 입력해주세요.");
@@ -501,26 +536,42 @@
             statusMessage.style.display = "none";
 
             const formData = new FormData(form);
+            const showStatus = (type, message) => {
+                statusMessage.className = `status-message ${type}`;
+                statusMessage.style.removeProperty('display');
+                statusMessage.textContent = message;
+            };
 
             try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.result === 'success') {
-                    statusMessage.className = "status-message success";
-                    statusMessage.innerHTML = "<strong>상담 신청이 정상적으로 완료되었습니다!</strong><br>성경세미나에서 뵙겠습니다.";
-                    form.reset();
-                } else {
-                    throw new Error(result.message || "오류가 발생했습니다.");
+                for (const name of ['inviter', 'invitee']) {
+                    const value = String(formData.get(name) || '').trim();
+                    if (!value || value.length > 80) throw new Error('INVALID_INPUT');
+                    formData.set(name, value);
                 }
+                const church = String(formData.get('church') || '').trim();
+                if (church.length > 100) throw new Error('INVALID_INPUT');
+                formData.set('church', church);
+                for (const name of ['inviter_phone', 'invitee_phone']) {
+                    const raw = String(formData.get(name) || '').trim();
+                    const value = normalizePhone(raw);
+                    if (raw && !value) throw new Error('INVALID_PHONE');
+                    formData.set(name, value);
+                }
+                if (String(formData.get('note') || '').length > 2000) throw new Error('INVALID_INPUT');
+                await requestJson(SCRIPT_URL, {
+                    method: 'POST', body: new URLSearchParams(formData)
+                });
+                showStatus('success', '상담 신청이 정상적으로 완료되었습니다! 성경세미나에서 뵙겠습니다.');
+                form.reset();
             } catch (error) {
-                console.error("Submission Error:", error);
-                statusMessage.className = "status-message error";
-                statusMessage.innerHTML = "접수 중 문제가 발생했습니다.<br>잠시 후 다시 시도해주시거나 담당자에게 문의해주세요.";
+                const invalid = ['INVALID_INPUT', 'INVALID_PHONE'].includes(error.message);
+                const uncertain = error.name === 'AbortError' ||
+                    ['INVALID_RESPONSE', 'HTTP_ERROR', 'SERVER_ERROR'].includes(error.message) || error instanceof TypeError;
+                showStatus('error', invalid
+                    ? '이름·소속 교회·연락처를 확인해주세요. 교회명은 100자 이내, 연락처는 한 개의 번호만 입력해주세요.'
+                    : uncertain
+                        ? '접수 결과를 확인하지 못했습니다. 중복 신청을 피하려면 담당자에게 접수 여부를 먼저 확인해주세요.'
+                        : '접수하지 못했습니다. 잠시 후 다시 시도하거나 담당자에게 문의해주세요.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = "상담 신청하기";

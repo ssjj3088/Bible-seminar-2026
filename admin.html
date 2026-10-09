@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>부울경 성경세미나 신앙상담 접수 현황 (관리자)</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -185,6 +185,12 @@
             border-bottom: 1px dashed #e2e8f0;
         }
 
+        .admin-header { flex-wrap: wrap; gap: 8px; }
+        .header-actions { display: flex; gap: 6px; }
+        #refreshStatus { margin-bottom: 8px; font-size: 0.8rem; color: var(--text-muted); }
+        .auth-label { display: block; margin-bottom: 6px; font-size: 0.85rem; }
+        .target-name { font-family: inherit; border: 0; background: transparent; cursor: pointer; text-align: left; }
+        .target-name:focus-visible { outline: 2px solid var(--accent-gold); }
         .target-name-area {
             display: flex;
             align-items: baseline;
@@ -312,7 +318,11 @@
             color: #ffffff;
         }
 
+        .church-line { margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted); word-break: keep-all; overflow-wrap: anywhere; }
+
         .note-box {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
             background: #fffdf8;
             border: 1px solid #fcefc7;
             border-radius: 8px;
@@ -399,6 +409,18 @@
             font-weight: 700;
             cursor: pointer;
         }
+        .target-name-area { min-width: 0; max-width: 100%; flex-shrink: 1; }
+        .target-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .target-honorific { flex-shrink: 0; }
+        .section-person { max-width: 100%; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+        .schedule-badge { max-width: 100%; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+        .action-btn-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .btn-action, .refresh-btn, .day-tab { min-height: 44px; font-family: inherit; }
+        .search-input { font-size: 16px; }
+        @media (max-width: 390px) {
+            .action-btn-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .btn-copy { grid-column: 1 / -1; }
+        }
     </style>
 </head>
 <body>
@@ -407,8 +429,9 @@
     <div id="authModal" class="auth-overlay">
         <div class="auth-card">
             <h2>관리자 인증</h2>
-            <p>신청자 개인정보 조회를 위해 비밀번호를 입력해주세요.</p>
-            <input type="password" id="pwInput" class="auth-input" placeholder="비밀번호" autofocus>
+            <p>신청자 개인정보 조회를 위해 관리자 접근 키를 입력해주세요.</p>
+            <label for="pwInput" class="auth-label">관리자 접근 키</label>
+            <input type="password" id="pwInput" class="auth-input" placeholder="관리자 접근 키" autocomplete="off" autofocus>
             <button class="auth-btn" onclick="checkAuth()">확인</button>
         </div>
     </div>
@@ -419,10 +442,14 @@
             <h1>신앙상담 접수 현황</h1>
             <p>기쁜소식부산대연교회</p>
         </div>
-        <button class="refresh-btn" onclick="fetchData()">🔄 새로고침</button>
+        <div class="header-actions">
+            <button class="refresh-btn" onclick="fetchData()">🔄 새로고침</button>
+            <button class="refresh-btn" onclick="logout()">로그아웃</button>
+        </div>
     </header>
 
     <div class="container">
+        <p id="refreshStatus" role="status" aria-live="polite">인증 후 명단을 확인할 수 있습니다.</p>
         <!-- 요약 바 -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -445,7 +472,7 @@
 
         <!-- 필터 및 검색 -->
         <div class="filter-box">
-            <input type="text" id="searchInput" class="search-input" placeholder="이름 또는 전화번호 검색..." oninput="filterData()">
+            <input type="text" id="searchInput" class="search-input" placeholder="이름·소속 교회·전화번호 검색..." oninput="filterData()">
             <div class="day-tabs">
                 <button class="day-tab active" onclick="setDayFilter('all', this)">전체보기</button>
                 <button class="day-tab" onclick="setDayFilter('10.14', this)">10.14(수)</button>
@@ -464,133 +491,153 @@
         // Google Apps Script Web App URL
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyK2LTNVBcG6r-HWtGDNRtdXXiTbIWzoXmTBt9ibmRO37AtsFyZ0GAfyOtia5I5IiI/exec";
         
-        // 관리자 비밀번호
-        const ADMIN_PASSWORD = "1234";
+        // 접근 키는 메모리에만 보관하고 서버에서 검증한다.
+        let adminToken = "";
+        let fetching = false;
+        let refreshTimer;
 
         let allApplicants = [];
         let currentDayFilter = 'all';
 
-        function checkAuth() {
-            const input = document.getElementById('pwInput').value;
-            if (input === ADMIN_PASSWORD) {
-                document.getElementById('authModal').style.display = 'none';
-                fetchData();
-            } else {
-                alert("비밀번호가 일치하지 않습니다.");
-                document.getElementById('pwInput').value = "";
+        async function checkAuth() {
+            if (fetching) return;
+            const input = document.getElementById('pwInput');
+            adminToken = input.value.trim();
+            if (adminToken.length < 32 || adminToken.length > 256) {
+                adminToken = '';
+                alert('설정한 32자 이상의 관리자 접근 키를 입력해주세요.');
+                return;
             }
+            const ok = await fetchData();
+            input.value = '';
+            if (ok) {
+                document.getElementById('authModal').style.display = 'none';
+                scheduleRefresh();
+            }
+            else adminToken = '';
         }
 
-        document.getElementById('pwInput').addEventListener('keypress', function(e) {
+        document.getElementById('pwInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') checkAuth();
         });
 
-        // 전화번호 포맷터 (010-XXXX-XXXX)
-        function formatPhone(p) {
-            if (!p) return "";
-            let num = String(p).trim().replace(/[^0-9]/g, '');
-            if (num.startsWith('10') && num.length === 10) {
-                num = '0' + num;
-            }
-            if (num.length === 11) {
-                return num.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-            } else if (num.length === 10) {
-                return num.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-            }
-            return p;
+        // 한국 휴대전화/일반 유선번호만 허용. 여러 번호나 임의 문자열은 차단.
+        function normalizePhone(value) {
+            if (value == null || value === '') return '';
+            const raw = String(value).trim();
+            if (!/^\+?[0-9()\s-]+$/.test(raw)) return '';
+            let n = raw.replace(/[()\s-]/g, '');
+            if (n.startsWith('+82')) n = '0' + n.slice(3);
+            if (/^10\d{8}$/.test(n)) n = '0' + n;
+            const mobile = /^010\d{8}$|^01[16789]\d{7,8}$/;
+            const landline = /^02\d{7,8}$|^0(?:31|32|33|41|42|43|44|51|52|53|54|55|61|62|63|64)\d{7,8}$|^070\d{8}$/;
+            return mobile.test(n) || landline.test(n) ? n : '';
         }
-
-        // 전화번호 단일 추출
-        function extractSinglePhone(p) {
-            if (!p) return "";
-            let s = String(p).trim();
-            let matches = s.match(/(0?10\d{7,8}|\d{9,11})/g);
-            if (matches && matches.length > 0) {
-                let num = matches[0];
-                if (num.startsWith('10') && num.length === 10) num = '0' + num;
-                return num;
-            }
-            return s.replace(/[^0-9]/g, '');
+        function extractSinglePhone(value) { return normalizePhone(value); }
+        function formatPhone(value) {
+            const n = normalizePhone(value);
+            if (!n) return '';
+            return n.startsWith('02')
+                ? n.replace(/^(02)(\d{3,4})(\d{4})$/, '$1-$2-$3')
+                : n.replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3');
         }
-
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g,
+                ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+        async function requestJson(url, options = {}) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 20000);
+            try {
+                const response = await fetch(url, {...options, signal: controller.signal});
+                if (!response.ok) throw new Error('HTTP_ERROR');
+                let result;
+                try { result = JSON.parse(await response.text()); }
+                catch { throw new Error('INVALID_RESPONSE'); }
+                if (!result || typeof result !== 'object' || Array.isArray(result)) {
+                    throw new Error('INVALID_RESPONSE');
+                }
+                if (result.result !== 'success') throw new Error(result.code || 'SERVER_ERROR');
+                return result;
+            } finally { clearTimeout(timer); }
+        }
         // 접수일시 포맷팅 (10.07 13:29 형식으로 단정하게)
         function formatCleanDate(raw) {
-            if (!raw) return "";
-            try {
-                const d = new Date(raw);
-                if (!isNaN(d.getTime())) {
-                    const m = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    const h = String(d.getHours()).padStart(2, '0');
-                    const min = String(d.getMinutes()).padStart(2, '0');
-                    return `${m}.${day} ${h}:${min}`;
-                }
-            } catch (e) {}
-            return String(raw).substring(0, 16);
+            const s = String(raw ?? '');
+            // 서버가 반환하는 서울 시각 문자열은 Date의 브라우저별 파싱을 거치지 않는다.
+            const m = s.match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
+            return m ? `${m[1]}.${m[2]} ${m[3]}:${m[4]}` : s.slice(0, 16);
         }
-
-        async function fetchData() {
+        function scheduleRefresh(delay = 30000) {
+            clearTimeout(refreshTimer);
+            if (!adminToken) return;
+            refreshTimer = setTimeout(async () => {
+                if (document.hidden) { scheduleRefresh(delay); return; }
+                const ok = await fetchData(true);
+                scheduleRefresh(ok ? 30000 : Math.min(delay * 2, 300000));
+            }, delay);
+        }
+        function logout() {
+            adminToken = '';
+            clearTimeout(refreshTimer);
+            allApplicants = [];
+            updateStats();
+            document.getElementById('applicantList').textContent = '인증 후 명단을 확인할 수 있습니다.';
+            document.getElementById('refreshStatus').textContent = '인증이 필요합니다.';
+            document.getElementById('authModal').style.display = 'flex';
+            const input = document.getElementById('pwInput');
+            input.value = '';
+            input.focus();
+        }
+        function showApplicantNames(button) {
+            alert(`초청자: ${button.dataset.inviter}
+초청받으신 분: ${button.dataset.invitee}`);
+        }
+        async function fetchData(background = false) {
+            if (!adminToken || fetching) return false;
+            fetching = true;
+            const requestedToken = adminToken;
+            const status = document.getElementById('refreshStatus');
+            status.textContent = '최신 명단을 확인하는 중입니다...';
+            const refresh = document.querySelector('.refresh-btn');
+            refresh.disabled = true;
             const listEl = document.getElementById('applicantList');
-            listEl.innerHTML = '<div class="empty-state">최신 명단을 불러오는 중...</div>';
-
             try {
-                const response = await fetch(SCRIPT_URL);
-                const text = await response.text();
-                let result;
-                try {
-                    result = JSON.parse(text);
-                } catch (e) {
-                    throw new Error("데이터 수신 오류: 구글 시트 Apps Script에서 최신 코드를 [새 버전]으로 배포해 주세요.");
-                }
-
-                if (result.result === 'success') {
-                    // 데이터 자동 분리 복구 로직 (서버에서 한 줄로 합쳐져 온 경우에도 완벽 분리)
-                    allApplicants = (result.data || []).map(item => {
-                        let inviter = item.inviter || "";
-                        let inviterPhone = item.inviterPhone || "";
-                        let invitee = item.invitee || "";
-                        let inviteePhone = item.inviteePhone || "";
-                        let day = item.day || "";
-                        let time = item.time || "";
-                        let note = item.note || "";
-                        let ts = item.timestamp || "";
-
-                        // 전체 줄이 쉼표로 뭉쳐져 있는 경우 분리
-                        if (inviter.includes(",") && (inviter.includes("10.") || inviter.includes("GMT"))) {
-                            let parts = inviter.split(",");
-                            if (parts.length >= 7) {
-                                ts = parts[0] || ts;
-                                inviter = parts[1] || "";
-                                inviterPhone = parts[2] || "";
-                                invitee = parts[3] || "";
-                                inviteePhone = parts[4] || "";
-                                day = parts[5] || "";
-                                time = parts[6] || "";
-                                note = parts.slice(7).join(",") || "";
-                            }
-                        }
-
-                        return {
-                            timestamp: ts,
-                            inviter: inviter,
-                            inviterPhone: inviterPhone,
-                            invitee: invitee,
-                            inviteePhone: inviteePhone,
-                            day: day,
-                            time: time,
-                            note: note
-                        };
-                    });
-
+                const result = await requestJson(SCRIPT_URL, {
+                    method: 'POST',
+                    body: new URLSearchParams({action: 'list', admin_token: adminToken})
+                });
+                if (adminToken !== requestedToken) return false;
+                if (!Array.isArray(result.data)) throw new Error('INVALID_RESPONSE');
+                const fields = ['timestamp','inviter','inviterPhone','invitee','inviteePhone','day','time','note','church'];
+                const next = result.data.map(item => {
+                    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('INVALID_RESPONSE');
+                    return Object.fromEntries(fields.map(key => [key, String(item[key] ?? '')]));
+                });
+                allApplicants = next; // 쉼표를 이용한 추정 복구는 하지 않는다.
+                updateStats(); filterData();
+                const updatedAt = new Date().toLocaleTimeString('ko-KR', {timeZone: 'Asia/Seoul'});
+                status.textContent = `최근 갱신 ${updatedAt} · 30초마다 자동 확인`;
+                if (!background) scheduleRefresh();
+                return true;
+            } catch (error) {
+                if (adminToken !== requestedToken) return false;
+                if (error.message === 'UNAUTHORIZED') {
+                    adminToken = '';
+                    allApplicants = [];
                     updateStats();
-                    filterData();
-                } else {
-                    listEl.innerHTML = '<div class="empty-state">데이터를 가져오지 못했습니다.<br>' + (result.message || "") + '</div>';
+                    listEl.textContent = '인증이 필요합니다.';
+                    clearTimeout(refreshTimer);
+                    document.getElementById('authModal').style.display = 'flex';
                 }
-            } catch (err) {
-                console.error(err);
-                listEl.innerHTML = '<div class="empty-state" style="color:#c62828;">' + err.message + '</div>';
-            }
+                status.textContent = error.message === 'UNAUTHORIZED'
+                    ? '인증이 필요합니다.'
+                    : '갱신 실패 · 표시된 명단은 최신 정보가 아닐 수 있습니다.';
+                if (!background) alert(error.message === 'UNAUTHORIZED'
+                    ? '관리자 접근 키를 확인해주세요.'
+                    : '명단을 갱신하지 못했습니다. 기존 명단은 최신 정보가 아닐 수 있습니다. 다시 시도해주세요.');
+                return false;
+            } finally { fetching = false; refresh.disabled = false; }
         }
 
         function updateStats() {
@@ -615,19 +662,23 @@
                 return;
             }
             const body = "안녕하세요. 오늘 초청하신 분 오셨는지 상담 가능하신지 여부 확인 부탁드립니다.";
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             const separator = isIOS ? '&' : '?';
             window.location.href = `sms:${cleanPhone}${separator}body=${encodeURIComponent(body)}`;
         }
 
         // 요청하신 카카오톡 확인 메시지 복사
-        function copyKakaoMessage() {
+        async function copyKakaoMessage() {
             const msg = "안녕하세요. 오늘 초청하신 분 오셨는지 상담 가능하신지 여부 확인 부탁드립니다.";
-            navigator.clipboard.writeText(msg).then(() => {
-                alert("확인 메시지가 복사되었습니다!\n\n「" + msg + "」\n\n카카오톡에 그대로 붙여넣기 하시면 됩니다.");
-            }).catch(() => {
-                prompt("아래 문구를 복사해서 카카오톡에 붙여넣으세요:", msg);
-            });
+            try {
+                if (!window.isSecureContext || !navigator.clipboard?.writeText) throw new Error('UNAVAILABLE');
+                await navigator.clipboard.writeText(msg);
+                alert('확인 메시지가 복사되었습니다.');
+            } catch {
+                // 권한이 없거나 API가 없으면 자동 복사 성공이라고 알리지 않는다.
+                prompt('자동 복사가 불가능합니다. 아래 문구를 길게 눌러 직접 복사해주세요:', msg);
+            }
         }
 
         function filterData() {
@@ -640,14 +691,20 @@
                 
                 const inviteeStr = String(item.invitee || "").toLowerCase();
                 const inviterStr = String(item.inviter || "").toLowerCase();
+                const churchStr = String(item.church || "").toLowerCase();
                 const inviteePhoneStr = String(item.inviteePhone || "");
                 const inviterPhoneStr = String(item.inviterPhone || "");
 
                 const matchQuery = !query || 
                     inviteeStr.includes(query) ||
                     inviterStr.includes(query) ||
-                    inviteePhoneStr.includes(query) ||
-                    inviterPhoneStr.includes(query);
+                    churchStr.includes(query) ||
+                    inviteePhoneStr.includes(query) || inviterPhoneStr.includes(query) ||
+                    (/^[\d\s()+-]+$/.test(query) && query.replace(/\D/g, '').length > 0 &&
+                        [inviteePhoneStr, inviterPhoneStr].some(p => {
+                            const digits = normalizePhone(p) || p.replace(/\D/g, '');
+                            return digits.includes(query.replace(/\D/g, ''));
+                        }));
                 return matchDay && matchQuery;
             });
 
@@ -672,36 +729,36 @@
                     </div>
                 ` : `
                     <div class="action-btn-group">
-                        <button class="btn-action btn-copy" onclick="copyKakaoMessage()" style="grid-column: span 3;">📋 카톡용 복사</button>
+                        <button class="btn-action btn-copy" onclick="copyKakaoMessage()" style="grid-column: 1 / -1;">📋 카톡용 복사</button>
                     </div>
                 `;
 
-                // 초청받으신 분 액션
-                const inviteeActions = inviteePhoneClean ? `
-                    <a href="tel:${inviteePhoneClean}" style="display:inline-flex; align-items:center; gap:3px; background:#e2e8f0; color:#334155; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:0.82rem; font-weight:600; white-space:nowrap;">
-                        📞 ${inviteePhoneFormatted}
-                    </a>
-                ` : '<span style="color:#94a3b8; font-size:0.8rem;">연락처 없음</span>';
+                // 대상자 번호는 표시만 한다. 모든 연락 액션은 초청자 전용.
+                const inviteeActions = inviteePhoneClean
+                    ? `<span>${escapeHtml(inviteePhoneFormatted)}</span>`
+                    : '<span>연락처 없음 또는 확인 필요</span>';
 
-                const noteHtml = item.note ? `<div class="note-box">💬 <strong>전달사항:</strong> ${item.note}</div>` : '';
+                const noteHtml = item.note ? `<div class="note-box">💬 <strong>전달사항:</strong> ${escapeHtml(item.note)}</div>` : '';
 
                 return `
                     <div class="applicant-card">
                         <div class="card-header-row">
                             <div class="target-name-area">
-                                <span class="target-name">${item.invitee}</span>
+                                <button type="button" class="target-name" title="전체 이름 확인" aria-label="전체 이름 확인" data-inviter="${escapeHtml(item.inviter)}" data-invitee="${escapeHtml(item.invitee)}" onclick="showApplicantNames(this)">${escapeHtml(item.invitee)}</button>
                                 <span class="target-honorific">님 (초청받으신 분)</span>
                             </div>
                             <div class="schedule-badge">
-                                ${item.day} ${item.time}
+                                ${escapeHtml(item.day)} ${escapeHtml(item.time)}
                             </div>
                         </div>
+
+                        <div class="church-line"><strong>소속 교회:</strong> ${escapeHtml(item.church || '미입력')}</div>
 
                         <!-- 초청자 섹션 (연락 및 카톡 연동 핵심) -->
                         <div class="info-section inviter-section">
                             <div class="info-section-header">
                                 <span class="section-label">📢 초청자 안내 및 연락</span>
-                                <span class="section-person">${item.inviter} ${inviterPhoneFormatted ? `(${inviterPhoneFormatted})` : ''}</span>
+                                <span class="section-person">${escapeHtml(item.inviter)} ${inviterPhoneFormatted ? `(${inviterPhoneFormatted})` : ''}</span>
                             </div>
                             ${inviterActions}
                         </div>
@@ -715,7 +772,7 @@
                         </div>
 
                         ${noteHtml}
-                        <div class="card-footer-time">접수일시: ${formatCleanDate(item.timestamp)}</div>
+                        <div class="card-footer-time">접수일시: ${escapeHtml(formatCleanDate(item.timestamp))}</div>
                     </div>
                 `;
             }).join('');
